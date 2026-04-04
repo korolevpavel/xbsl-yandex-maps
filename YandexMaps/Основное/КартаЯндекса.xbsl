@@ -1,37 +1,66 @@
 импорт Основное
 импорт Служебные
 
-@НаСервере
-структура КонфигурацияКартыJson
-    пер ApiKey: Строка?
-    пер Markers: Массив<МеткаКарты>
-    пер CenterLat: Число?
-    пер CenterLng: Число?
-    пер Zoom: Число?
-    пер AutoFitBounds: Булево
-    пер ClusterizeMarkers: Булево
-;
-
 @НаСервере @ДоступноСКлиента
 @Контекстный
 метод СформироватьHtmlДокумент(): Строка
     знч ApiKeyИзНастроек = СервисYandexMaps.ПолучитьApiKeyИзНастроек()
-    знч ЭффективныйApiKey = ПолучитьЭффективныйApiKey(ApiKeyИзНастроек)
-    если ЭффективныйApiKey == Неопределено или ЭффективныйApiKey.Пусто()
-        знч ДиагностическоеСообщение = СервисYandexMaps.ПолучитьДиагностическоеСообщение(ApiKey, ApiKeyИзНастроек)
-        возврат СформироватьHtmlСообщения("Карта недоступна", ДиагностическоеСообщение ?? "Не удалось получить API key для Яндекс Карт.")
+    пер ЭффективныйApiKey = ApiKeyИзНастроек
+    если ApiKey != Неопределено и не ApiKey.Пусто()
+        ЭффективныйApiKey = ApiKey
     ;
 
-    знч Конфигурация = новый КонфигурацияКартыJson()
-    Конфигурация.ApiKey = ЭффективныйApiKey
-    Конфигурация.Markers = ПолучитьМетки()
-    Конфигурация.CenterLat = ЦентрШирота
-    Конфигурация.CenterLng = ЦентрДолгота
-    Конфигурация.Zoom = Масштаб
-    Конфигурация.AutoFitBounds = АвтоПодобратьГраницы
-    Конфигурация.ClusterizeMarkers = КластеризоватьМетки
+    если ЭффективныйApiKey == Неопределено или ЭффективныйApiKey.Пусто()
+        пер ДиагностическоеСообщение = СервисYandexMaps.ПолучитьДиагностическоеСообщение(ApiKey, ApiKeyИзНастроек)
+        если ДиагностическоеСообщение == Неопределено
+            ДиагностическоеСообщение = "Не удалось получить API key для Яндекс Карт."
+        ;
 
-    пер КонфигурацияJson = СериализацияJson.ЗаписатьОбъект(Конфигурация)
+        возврат
+            "<!DOCTYPE html>\n"
+            + "<html><head><meta charset='utf-8'>"
+            + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+            + "<style>"
+            + "html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);color:#1f2937;}"
+            + "body{display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}"
+            + ".card{max-width:420px;padding:20px 22px;border-radius:16px;background:rgba(255,255,255,0.95);box-shadow:0 12px 30px rgba(15,23,42,0.12);text-align:center;}"
+            + ".title{font-size:16px;font-weight:700;margin-bottom:8px;}"
+            + ".text{font-size:14px;line-height:1.5;color:#475569;}"
+            + "</style></head><body><div class='card'><div class='title'>Карта недоступна</div><div class='text'>"
+            + ДиагностическоеСообщение
+            + "</div></div></body></html>"
+    ;
+
+    пер МеткиДляКарты = новый Массив<МеткаКарты>()
+    если Метки != Неопределено
+        МеткиДляКарты = Метки
+    ;
+
+    пер ApiKeyJson = СериализацияJson.ЗаписатьОбъект(ЭффективныйApiKey)
+    пер МеткиJson = СериализацияJson.ЗаписатьОбъект(МеткиДляКарты)
+    пер CenterLatJson = "null"
+    пер CenterLngJson = "null"
+    пер ZoomJson = "null"
+    если ЦентрШирота != Неопределено
+        CenterLatJson = СериализацияJson.ЗаписатьОбъект(ЦентрШирота)
+    ;
+    если ЦентрДолгота != Неопределено
+        CenterLngJson = СериализацияJson.ЗаписатьОбъект(ЦентрДолгота)
+    ;
+    если Масштаб != Неопределено
+        ZoomJson = СериализацияJson.ЗаписатьОбъект(Масштаб)
+    ;
+
+    пер КонфигурацияJson =
+        "{"
+        + "\"ApiKey\":" + ApiKeyJson
+        + ",\"Markers\":" + МеткиJson
+        + ",\"CenterLat\":" + CenterLatJson
+        + ",\"CenterLng\":" + CenterLngJson
+        + ",\"Zoom\":" + ZoomJson
+        + ",\"AutoFitBounds\":" + СериализацияJson.ЗаписатьОбъект(АвтоПодобратьГраницы)
+        + ",\"ClusterizeMarkers\":" + СериализацияJson.ЗаписатьОбъект(КластеризоватьМетки)
+        + "}"
     КонфигурацияJson = КонфигурацияJson.Заменить("</", "<\\/")
 
     возврат
@@ -60,56 +89,4 @@
         + "function loadApi(){const script=document.createElement('script');script.src='https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey='+encodeURIComponent(config.ApiKey);script.onload=function(){if(window.ymaps){ymaps.ready(initMap);}else{setStatus('API Яндекс Карт не вернул объект ymaps.');}};script.onerror=function(){setStatus('Не удалось загрузить API Яндекс Карт. Проверьте корректность ApiKey и доступность домена.');};document.head.appendChild(script);}"
         + "loadApi();"
         + "</script></body></html>"
-;
-
-@НаСервере
-@Контекстный
-метод ПолучитьЭффективныйApiKey(ApiKeyИзНастроек: Строка?): Строка?
-    если ApiKey != Неопределено и не ApiKey.Пусто()
-        возврат ApiKey
-    ;
-
-    возврат ApiKeyИзНастроек
-;
-
-@НаСервере
-@Контекстный
-метод ПолучитьМетки(): Массив<МеткаКарты>
-    если Метки == Неопределено
-        возврат новый Массив<МеткаКарты>()
-    ;
-
-    возврат Метки
-;
-
-@НаСервере
-метод СформироватьHtmlСообщения(Заголовок: Строка, Сообщение: Строка): Строка
-    знч БезопасныйЗаголовок = ЭкранироватьHtml(Заголовок)
-    знч БезопасноеСообщение = ЭкранироватьHtml(Сообщение)
-
-    возврат
-        "<!DOCTYPE html>\n"
-        + "<html><head><meta charset='utf-8'>"
-        + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-        + "<style>"
-        + "html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);color:#1f2937;}"
-        + "body{display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}"
-        + ".card{max-width:420px;padding:20px 22px;border-radius:16px;background:rgba(255,255,255,0.95);box-shadow:0 12px 30px rgba(15,23,42,0.12);text-align:center;}"
-        + ".title{font-size:16px;font-weight:700;margin-bottom:8px;}"
-        + ".text{font-size:14px;line-height:1.5;color:#475569;}"
-        + "</style></head><body><div class='card'><div class='title'>"
-        + БезопасныйЗаголовок
-        + "</div><div class='text'>"
-        + БезопасноеСообщение
-        + "</div></div></body></html>"
-;
-
-@НаСервере
-метод ЭкранироватьHtml(Значение: Строка): Строка
-    возврат Значение
-        .Заменить("&", "&amp;")
-        .Заменить("<", "&lt;")
-        .Заменить(">", "&gt;")
-        .Заменить("\"", "&quot;")
-        .Заменить("'", "&#39;")
 ;
