@@ -1,2 +1,5 @@
 Интерфейс:
     Представление: Демо
+Использование:
+    - korolevpavel::YandexMaps::Основное
+    - korolevpavel::YandexMaps::Настройки
