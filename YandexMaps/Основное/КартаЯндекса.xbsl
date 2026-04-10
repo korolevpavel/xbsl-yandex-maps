@@ -15,20 +15,7 @@
         если ДиагностическоеСообщение == Неопределено
             ДиагностическоеСообщение = "Не удалось получить API key для Яндекс Карт."
         ;
-
-        возврат
-            "<!DOCTYPE html>\n"
-            + "<html><head><meta charset='utf-8'>"
-            + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-            + "<style>"
-            + "html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);color:#1f2937;}"
-            + "body{display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}"
-            + ".card{max-width:420px;padding:20px 22px;border-radius:16px;background:rgba(255,255,255,0.95);box-shadow:0 12px 30px rgba(15,23,42,0.12);text-align:center;}"
-            + ".title{font-size:16px;font-weight:700;margin-bottom:8px;}"
-            + ".text{font-size:14px;line-height:1.5;color:#475569;}"
-            + "</style></head><body><div class='card'><div class='title'>Карта недоступна</div><div class='text'>"
-            + ДиагностическоеСообщение
-            + "</div></div></body></html>"
+        возврат СформироватьДокументОшибки(ДиагностическоеСообщение)
     ;
 
     знч МеткиДляКарты = Метки
@@ -159,4 +146,21 @@
         + "}catch(e){setStatus(e.message||'Не удалось инициализировать карту.');console.error(e);}"
         + "})();"
         + "<\/script></body></html>"
+;
+
+@НаСервере @ДоступноСКлиента
+метод СформироватьДокументОшибки(Сообщение: Строка): Строка
+    возврат
+        "<!DOCTYPE html>\n"
+        + "<html><head><meta charset='utf-8'>"
+        + "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+        + "<style>"
+        + "html,body{margin:0;padding:0;height:100%;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f8fafc 0%,#eef2ff 100%);color:#1f2937;}"
+        + "body{display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;}"
+        + ".card{max-width:420px;padding:20px 22px;border-radius:16px;background:rgba(255,255,255,0.95);box-shadow:0 12px 30px rgba(15,23,42,0.12);text-align:center;}"
+        + ".title{font-size:16px;font-weight:700;margin-bottom:8px;}"
+        + ".text{font-size:14px;line-height:1.5;color:#475569;}"
+        + "</style></head><body><div class='card'><div class='title'>Карта недоступна</div><div class='text'>"
+        + Сообщение
+        + "</div></div></body></html>"
 ;
