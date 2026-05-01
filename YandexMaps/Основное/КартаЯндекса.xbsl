@@ -5,13 +5,18 @@
 @Контекстный
 метод СформироватьHtmlДокумент(): Строка
     знч ApiKeyИзНастроек = СервисYandexMaps.ПолучитьApiKeyИзНастроек()
+    знч ApiKeyV3ИзНастроек = СервисYandexMaps.ПолучитьApiKeyV3ИзНастроек()
+
     пер ЭффективныйApiKey = ApiKeyИзНастроек
+    если ВерсияApi == "3" и ApiKeyV3ИзНастроек != Неопределено и не ApiKeyV3ИзНастроек.Пусто()
+        ЭффективныйApiKey = ApiKeyV3ИзНастроек
+    ;
     если ApiKey != Неопределено и не ApiKey.Пусто()
         ЭффективныйApiKey = ApiKey
     ;
 
     если ЭффективныйApiKey == Неопределено или ЭффективныйApiKey.Пусто()
-        пер ДиагностическоеСообщение = СервисYandexMaps.ПолучитьДиагностическоеСообщение(ApiKey, ApiKeyИзНастроек)
+        пер ДиагностическоеСообщение = СервисYandexMaps.ПолучитьДиагностическоеСообщение(ApiKey, ApiKeyИзНастроек, ApiKeyV3ИзНастроек, ВерсияApi)
         если ДиагностическоеСообщение == Неопределено
             ДиагностическоеСообщение = "Не удалось получить API key для Яндекс Карт."
         ;
@@ -54,7 +59,7 @@
     возврат СформироватьДокументV2(КонфигурацияJson)
 ;
 
-@НаСервере @ДоступноСКлиента
+@НаСервере
 метод СформироватьДокументV2(КонфигурацияJson: Строка): Строка
     возврат
         "<!DOCTYPE html>\n"
@@ -81,10 +86,10 @@
         + "function initMap(){try{const markers=config.Markers||[];const hasExplicitViewport=config.CenterLat!==null&&config.CenterLat!==undefined&&config.CenterLng!==null&&config.CenterLng!==undefined&&config.Zoom!==null&&config.Zoom!==undefined;const hasSingleMarker=markers.length===1;const initialCenter=hasExplicitViewport?[config.CenterLat,config.CenterLng]:(hasSingleMarker?[markers[0].lat,markers[0].lng]:[55.751244,37.618423]);const initialZoom=hasExplicitViewport?config.Zoom:(hasSingleMarker?(config.Zoom||16):(config.Zoom||10));const map=new ymaps.Map('map',{center:initialCenter,zoom:initialZoom,controls:['zoomControl','fullscreenControl']},{suppressMapOpenBlock:true});const placemarks=markers.map(createPlacemark);if(config.ClusterizeMarkers&&placemarks.length>0){const clusterer=new ymaps.Clusterer({preset:'islands#invertedBlueClusterIcons'});clusterer.add(placemarks);map.geoObjects.add(clusterer);}else{placemarks.forEach(function(placemark){map.geoObjects.add(placemark);});}if(placemarks.length>0){if(hasExplicitViewport){map.setCenter([config.CenterLat,config.CenterLng],config.Zoom,{checkZoomRange:true});}else if(config.AutoFitBounds){const bounds=buildBounds(markers);if(bounds!==null){const isSinglePoint=bounds[0][0]===bounds[1][0]&&bounds[0][1]===bounds[1][1];if(isSinglePoint){map.setCenter(bounds[0],config.Zoom||16,{checkZoomRange:true});}else{map.setBounds(bounds,{checkZoomRange:true,zoomMargin:32});}}}else if(hasSingleMarker){map.setCenter([markers[0].lat,markers[0].lng],config.Zoom||16,{checkZoomRange:true});}}showMap();}catch(error){setStatus('Не удалось инициализировать карту.');console.error(error);}}"
         + "function loadApi(){const script=document.createElement('script');script.src='https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey='+encodeURIComponent(config.ApiKey);script.onload=function(){if(window.ymaps){ymaps.ready(initMap);}else{setStatus('API Яндекс Карт не вернул объект ymaps.');}};script.onerror=function(){setStatus('Не удалось загрузить API Яндекс Карт. Проверьте корректность ApiKey и доступность домена.');};document.head.appendChild(script);}"
         + "loadApi();"
-        + "<\/script></body></html>"
+        + "</script></body></html>"
 ;
 
-@НаСервере @ДоступноСКлиента
+@НаСервере
 метод СформироватьДокументV3(КонфигурацияJson: Строка): Строка
     возврат
         "<!DOCTYPE html>\n"
@@ -123,32 +128,32 @@
         + "var hasSingle=markers.length===1;"
         + "var center=hasExplicit?[config.CenterLng,config.CenterLat]:(hasSingle?[markers[0].lng,markers[0].lat]:[37.618423,55.751244]);"
         + "var zoom=hasExplicit?config.Zoom:(hasSingle?(config.Zoom||16):(config.Zoom||10));"
+        + "if(ymaps3.import&&ymaps3.import.registerCdn){ymaps3.import.registerCdn('https://cdn.jsdelivr.net/npm/{package}',['@yandex/ymaps3-clusterer@0.0','@yandex/ymaps3-default-ui-theme@0.0']);}"
+        + "var markerSourceId='yandexmaps-markers';"
         + "var map=new ymaps3.YMap(mapElement,{location:{center:center,zoom:zoom}});"
-        + "map.addChild(new ymaps3.YMapDefaultScheme());"
-        + "map.addChild(new ymaps3.YMapDefaultFeaturesLayer());"
-        + "var ctrls=new ymaps3.YMapControls({position:'right'});"
-        + "ctrls.addChild(new ymaps3.YMapZoomControl());"
-        + "map.addChild(ctrls);"
+        + "map.addChild(new ymaps3.YMapDefaultSchemeLayer({}));"
+        + "map.addChild(new ymaps3.YMapDefaultFeaturesLayer({}));"
+        + "if(ymaps3.YMapFeatureDataSource&&ymaps3.YMapLayer){map.addChild(new ymaps3.YMapFeatureDataSource({id:markerSourceId}));map.addChild(new ymaps3.YMapLayer({source:markerSourceId,type:'markers',zIndex:1800}));}"
+        + "try{var ui=await ymaps3.import('@yandex/ymaps3-default-ui-theme');var ctrls=new ymaps3.YMapControls({position:'right'});ctrls.addChild(new ui.YMapZoomControl({}));map.addChild(ctrls);}catch(controlError){console.warn(controlError);}"
         + "var activeEl=null;"
         + "function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'):'';}"
         + "function closePopup(){if(activeEl){var b=activeEl.querySelector('.balloon');if(b)b.remove();activeEl=null;}}"
         + "function openPopup(el,marker){closePopup();if(!marker.title&&!marker.description){return;}var p=document.createElement('div');p.className='balloon';p.innerHTML=(marker.title?'<div class=\"balloon-title\">'+esc(marker.title)+'<\\/div>':'')+(marker.description?'<div class=\"balloon-desc\">'+esc(marker.description)+'<\\/div>':'')+'<span class=\"balloon-close\">&#215;<\\/span>';p.querySelector('.balloon-close').addEventListener('click',function(e){e.stopPropagation();closePopup();});el.appendChild(p);activeEl=el;}"
         + "function makeEl(m){var el=document.createElement('div');el.className='marker';el.title=m.title||'';el.addEventListener('click',function(e){e.stopPropagation();openPopup(el,m);});return el;}"
+        + "function markerProps(coords){return {coordinates:coords,source:markerSourceId};}"
+        + "function addPlainMarkers(){markers.forEach(function(m){map.addChild(new ymaps3.YMapMarker(markerProps([m.lng,m.lat]),makeEl(m)));});}"
         + "if(config.ClusterizeMarkers&&markers.length>0){"
-        + "var pkg=await ymaps3.import('@yandex/ymaps3-clusterer@0.0.1');"
-        + "var clusterer=new pkg.YMapClusterer({method:pkg.clusterByGrid({gridSize:64}),features:markers.map(function(m,i){return {type:'Feature',id:m.id||String(i),geometry:{type:'Point',coordinates:[m.lng,m.lat]},properties:m};}),marker:function(f){return new ymaps3.YMapMarker({coordinates:f.geometry.coordinates},makeEl(f.properties));},cluster:function(coords,fs){var el=document.createElement('div');el.className='cluster';el.textContent=fs.length;return new ymaps3.YMapMarker({coordinates:coords},el);}});"
-        + "map.addChild(clusterer);"
-        + "}else{"
-        + "markers.forEach(function(m){map.addChild(new ymaps3.YMapMarker({coordinates:[m.lng,m.lat]},makeEl(m)));});"
-        + "}"
+        + "var pkg=null;try{pkg=await ymaps3.import('@yandex/ymaps3-clusterer');}catch(clusterError){console.warn(clusterError);}"
+        + "if(pkg){var clusterer=new pkg.YMapClusterer({method:pkg.clusterByGrid({gridSize:64}),features:markers.map(function(m,i){return {type:'Feature',id:m.id||String(i),geometry:{type:'Point',coordinates:[m.lng,m.lat]},properties:m};}),marker:function(f){return new ymaps3.YMapMarker(markerProps(f.geometry.coordinates),makeEl(f.properties));},cluster:function(coords,fs){var el=document.createElement('div');el.className='cluster';el.textContent=fs.length;return new ymaps3.YMapMarker(markerProps(coords),el);}});map.addChild(clusterer);}else{addPlainMarkers();}"
+        + "}else{addPlainMarkers();}"
         + "if(markers.length>1&&!hasExplicit&&config.AutoFitBounds){var minLng=markers[0].lng,maxLng=markers[0].lng,minLat=markers[0].lat,maxLat=markers[0].lat;markers.forEach(function(m){minLng=Math.min(minLng,m.lng);maxLng=Math.max(maxLng,m.lng);minLat=Math.min(minLat,m.lat);maxLat=Math.max(maxLat,m.lat);});map.setLocation({bounds:[[minLng,minLat],[maxLng,maxLat]],duration:0});}"
         + "showMap();"
         + "}catch(e){setStatus(e.message||'Не удалось инициализировать карту.');console.error(e);}"
         + "})();"
-        + "<\/script></body></html>"
+        + "</script></body></html>"
 ;
 
-@НаСервере @ДоступноСКлиента
+@НаСервере
 метод СформироватьДокументОшибки(Сообщение: Строка): Строка
     возврат
         "<!DOCTYPE html>\n"
