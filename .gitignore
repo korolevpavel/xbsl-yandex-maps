@@ -1,3 +1,4 @@
 dist/
 tools/
 .DS_Store
+.env
