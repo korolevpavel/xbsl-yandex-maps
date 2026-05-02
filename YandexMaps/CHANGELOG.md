@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.6
+
+- исправлена загрузка Yandex Maps JS API v3: добавлен `<meta name='referrer' content='no-referrer-when-downgrade'>` и `referrerPolicy` на script-элемент для корректной отправки Referer из `КонтейнерHtml`
+
 ## 1.1.5
 
 - добавлена настройка `ApiKeyV3` в `НастройкиYandexMaps` для раздельного хранения ключей v2.1 и v3
