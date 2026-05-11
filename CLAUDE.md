@@ -7,22 +7,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Библиотека `YandexMaps` для платформы **1С:Предприятие.Элемент** — добавляет интерактивный компонент Яндекс Карт в виде переиспользуемого элемента интерфейса.
 
 - **Язык платформы:** xbsl (1С:Элемент), конфигурация описывается в YAML
-- **Сборка:** выполняется инструментами платформы 1С:Элемент, скриптов сборки в репозитории нет
+- **Сборка:** через `build.py` из репозитория `xbsl-ai-skills` (скилл `xbsl-deploy`). Требует временной папки с иерархией `korolevpavel/<Проект>/` — см. ниже.
 - **Артефакты:** `.xlib` (библиотека), `.xasm` (приложение) — хранятся в `dist/` (в .gitignore)
 
 ## Структура репозитория
 
 ```
-YandexMaps/          # Исходный код библиотеки (единственная отслеживаемая директория)
+YandexMaps/          # Исходный код библиотеки
   Основное/          # Публичное API: компонент КартаЯндекса + структура МеткаКарты
   Настройки/         # Константы: НастройкиYandexMaps с ApiKey типа СекретПриложения
   Служебные/         # Внутренние модули: СервисYandexMaps (серверный, управляет ключом)
   Проект.yaml        # Метаданные библиотеки (версия, вендор: korolevpavel)
   CHANGELOG.md
   README.md
+DemoYandexMaps/      # Демо-приложение (отслеживается в репозитории)
+  Основное/
+    ДемоКарта.yaml   # Форма с примерами использования компонента
+  Проект.yaml        # Ссылается на конкретную версию YandexMaps
 ```
 
-`DemoYandexMaps/`, `dist/`, `tools/` — в `.gitignore`, в репозитории не хранятся.
+`dist/`, `tools/` — в `.gitignore`, в репозитории не хранятся.
+
+## Сборка и деплой
+
+Сборка выполняется через `build.py` из репозитория `xbsl-ai-skills`. Репозиторий называется `xbsl-yandex-maps`, поэтому нужна временная папка с правильной иерархией `korolevpavel/<Проект>/`:
+
+```bash
+# Библиотека
+rm -rf /tmp/xbsl-build && mkdir -p /tmp/xbsl-build/korolevpavel
+cp -r YandexMaps /tmp/xbsl-build/korolevpavel/YandexMaps
+python3 /path/to/xbsl-ai-skills/.claude/skills/xbsl-deploy/scripts/build.py \
+  --project-dir /tmp/xbsl-build/korolevpavel/YandexMaps --kind library --output dist
+
+# Демо-приложение
+rm -rf /tmp/xbsl-build && mkdir -p /tmp/xbsl-build/korolevpavel
+cp -r DemoYandexMaps /tmp/xbsl-build/korolevpavel/DemoYandexMaps
+python3 /path/to/xbsl-ai-skills/.claude/skills/xbsl-deploy/scripts/build.py \
+  --project-dir /tmp/xbsl-build/korolevpavel/DemoYandexMaps --output dist
+```
+
+Деплой — через скилл `xbsl-deploy` (api.py: `upload-build`, `project-update`, stop/start).
 
 ## Архитектура
 
@@ -36,6 +60,8 @@ YandexMaps/          # Исходный код библиотеки (единс�
 - `АвтоПодобратьГраницы` — авто-фит по меткам (по умолчанию `Истина`)
 - `КластеризоватьМетки` — кластеризация (по умолчанию `Истина`)
 - `ApiKey` — override ключа на уровне инстанса (основной способ — через настройки)
+
+Компонент **не задаёт размер по умолчанию**. На каждом инстансе нужно явно указать размер через встроенные свойства платформы: `Высота`, `Ширина`, `РастягиватьПоВертикали`, `РастягиватьПоГоризонтали`.
 
 ### Структура `МеткаКарты` (`Основное/МеткаКарты.yaml`)
 
